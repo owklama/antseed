@@ -455,6 +455,10 @@
   line-height: 1.65;
   color: #333;
   margin: 0 0 32px;
+  /* Long inline tokens (ANTHROPIC_BASE_URL, ~/.antseed/buyer.state.json) must
+   * be allowed to break mid-word so prose wraps inside narrow columns. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .description p { margin: 0 0 12px; }
 .description p:last-child { margin-bottom: 0; }
@@ -465,6 +469,9 @@
   border-radius: 5px;
   font-size: 13px;
   color: #1a1a1a;
+  /* Allow long monospace tokens to break inside the inline code pill. */
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 /* ====== "Run AntSeed first" banner ====== *
@@ -924,7 +931,14 @@
  * `pre { background: #f6f8fa !important }` rule that we cannot override with
  * scoped CSS-module selectors. <div> sidesteps that entirely.
  */
-.codeBlockWrap { display: block; }
+.codeBlockWrap {
+  display: block;
+  /* Flex/grid items default to min-width: auto = content's intrinsic min-width.
+   * Without this, a long-line code block can push its parent (and the page)
+   * wider than the viewport, causing horizontal scroll on mobile. */
+  min-width: 0;
+  max-width: 100%;
+}
 .codeBlockPath {
   font-size: 11px;
   color: #0d8c4f;
@@ -941,7 +955,18 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   line-height: 1.55;
+  /* Critical: clip + scroll long shell lines INSIDE this element.
+   * `width: 100%` + `box-sizing: border-box` means the padding (incl.
+   * the 56px right gutter for the copy button) eats from this width
+   * rather than expanding the box past the parent. Without these two
+   * lines the intrinsic width of `<span class=codeBlockText>` (which
+   * has `white-space: pre`) bubbles up through the `<li>`/`<ul>`/
+   * `<section>` chain and stretches the page. */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   white-space: pre;
   margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -990,7 +1015,13 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   line-height: 1.55;
+  /* Same width guard as .codeBlock — keep horizontal scroll inside
+   * the dark box, never on the page. */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   white-space: pre;
   border: 1px solid rgba(255, 255, 255, 0.05);
   opacity: 0.94;
@@ -1236,3 +1267,91 @@
   text-decoration: none;
 }
 .relatedRow a:hover { border-color: #1FD87A; text-decoration: none; }
+
+/* ============================================================
+ * Narrow viewports
+ *
+ * The page is content-dense and uses a lot of inline `<code>` for
+ * env-var names, file paths, and CLI commands. Long unbroken tokens
+ * (ANTHROPIC_BASE_URL, ~/.antseed/buyer.state.json) push the column
+ * past the viewport on phones if we don't tell them to wrap.
+ *
+ * The wrap rules for inline code (.description code, .runFirstHint code,
+ * .glossaryList code, etc.) are applied at *all* sizes — no media query —
+ * because they're correct at every viewport. The blocks below scale
+ * padding/font-size at two breakpoints:
+ *   - 996px: matches Docusaurus' navbar-collapse breakpoint. Without this,
+ *            a tablet-width window has a hamburger menu but a desktop-sized
+ *            content column.
+ *   - 720px: phone-shaped viewports. Tighter still.
+ * ============================================================ */
+
+/* Universal wrapping (every viewport) — long tokens must be breakable. */
+.runFirstHint,
+.runFirstStepTitle,
+.glossaryList li,
+.runFirstFieldList li,
+.relatedRow a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+.runFirstHint code,
+.glossaryList code,
+.runFirstFieldList code,
+.runFirstFieldList strong code {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+/* Flex/grid children that contain code or wide content: let them shrink. */
+.runFirstBody,
+.runFirstItem,
+.step,
+.stepList,
+.section {
+  min-width: 0;
+}
+
+/* Tablet — navbar is collapsed but viewport isn't phone-narrow. */
+@media (max-width: 996px) {
+  .detailWrap { padding: 32px 20px 64px; max-width: 100%; }
+  .detailHeaderText h1 { font-size: 32px; }
+  /* Stop the wireFormat row from blowing past 100% width. */
+  .wireFormatRow { grid-template-columns: minmax(0, 200px) minmax(0, 1fr) auto; }
+}
+
+/* Phone. */
+@media (max-width: 720px) {
+  /* Detail page wrapper: cut horizontal padding so content has room. */
+  .detailWrap { padding: 28px 16px 56px; }
+
+  /* Header: let text shrink below 240px and scale the H1. */
+  .detailHeader { gap: 14px; margin-bottom: 18px; }
+  .detailHeaderText { min-width: 0; flex: 1 1 100%; }
+  .detailHeaderText h1 {
+    font-size: 26px;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+  }
+  .detailLogo { width: 48px; height: 48px; border-radius: 12px; }
+  .detailLogo img { max-width: 32px; max-height: 32px; }
+  .detailLogo span { font-size: 22px; }
+  .detailOneLiner { font-size: 14px; }
+
+  /* Run-first banner: tighter padding, header stacks. */
+  .runFirst { padding: 14px 16px 16px; }
+  .runFirstHeader { gap: 10px; }
+  .runFirstSub { font-size: 13px; }
+
+  /* Glossary: lighter padding so the green box doesn't crowd the text. */
+  .glossary { padding: 14px 16px; }
+
+  /* Hub hero: trim vertical padding on small screens. */
+  .hero { padding: 48px 16px 24px; }
+  .heroSub { font-size: 15px; }
+
+  /* Hub card grid: align with detailWrap padding. */
+  .sections { padding: 0 16px; }
+  .jumpNav { padding: 0 16px; }
+  .searchRow { padding: 0 16px; }
+}
