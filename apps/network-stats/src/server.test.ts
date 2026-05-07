@@ -542,8 +542,9 @@ describe('createServer — rankings: mostReach and risingStars', () => {
     assert.equal(body.rankings.mostReach[0]!.uniqueBuyers, 4);
 
     // risingStars: agent 30 excluded (lifetime < 5).
-    // agent 10: requests7d=1, lifetime=100, daysActive≈100 → rate≈1/day → score≈1
-    // agent 20: requests7d=8, lifetime=10,  daysActive≈100 → rate≈0.1/day → score≈80
+    // Score is the rate ratio (recent-7d-rate / lifetime-rate), both in req/day.
+    // agent 10: recentRate=1/7≈0.143, lifetimeRate=100/100≈1   → score≈0.14 (slowing)
+    // agent 20: recentRate=8/7≈1.143, lifetimeRate=10/100≈0.1  → score≈11.4 (bursting)
     // → agent 20 ranks first; agent 30 is absent.
     const ids = body.rankings.risingStars.map((s) => s.agentId);
     assert.ok(!ids.includes(30), 'agent 30 below lifetime floor must be excluded');

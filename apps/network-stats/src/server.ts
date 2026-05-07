@@ -21,10 +21,23 @@ const RISING_STARS_MIN_LIFETIME_REQUESTS = 5n;
 type RankingMetric = { agentId: number; requests: string; inputTokens: string; outputTokens: string; settlements: number };
 type ReachEntry = { agentId: number; uniqueBuyers: number; totalRequests: string };
 type RisingStarEntry = { agentId: number; score: number; requests7d: string; lifetimeRequests: string; daysActive: number };
+type WindowMetric = { requests: string; inputTokens: string; outputTokens: string; settlements: number };
 
 function makeRankingMetric(agentId: number, t: TimeframeTotals): RankingMetric {
   return {
     agentId,
+    requests: t.totalRequests.toString(),
+    inputTokens: t.totalInputTokens.toString(),
+    outputTokens: t.totalOutputTokens.toString(),
+    settlements: t.settlementCount,
+  };
+}
+
+// Per-peer windowed totals — same shape as RankingMetric minus the agentId,
+// since the agentId is already on the parent onChainStats object.
+function toWindowMetric(t: TimeframeTotals | undefined): WindowMetric | null {
+  if (!t) return null;
+  return {
     requests: t.totalRequests.toString(),
     inputTokens: t.totalInputTokens.toString(),
     outputTokens: t.totalOutputTokens.toString(),
@@ -153,6 +166,14 @@ export function createServer(deps: CreateServerDeps): { start(): Promise<void>; 
             avgRequestsPerChannel: totals.avgRequestsPerChannel,
             avgRequestsPerBuyer: totals.avgRequestsPerBuyer,
             lastUpdatedAt: totals.lastUpdatedAt,
+            last24h: toWindowMetric(windowMaps.last24h.get(agentId)),
+            last7d: toWindowMetric(windowMaps.last7d.get(agentId)),
+            last30d: toWindowMetric(windowMaps.last30d.get(agentId)),
+            // Same shape as the windowed metrics so clients can iterate
+            // ['last24h', 'last7d', 'last30d', 'allTime'] uniformly. The flat
+            // totalRequests/totalInputTokens/etc. fields above are kept for
+            // backward compatibility.
+            allTime: toWindowMetric(totals),
           },
         };
       }),
@@ -226,7 +247,9 @@ export function createServer(deps: CreateServerDeps): { start(): Promise<void>; 
       }))
       .sort((a, b) => b.uniqueBuyers - a.uniqueBuyers);
 
-    // risingStars: 7d-rate vs lifetime-rate. Score > 1 = above lifetime average.
+    // risingStars: ratio of recent-rate (7d) to lifetime-rate, both in
+    // requests/day. Score = 1 means the agent is keeping pace with its
+    // lifetime average; > 1 = above average, < 1 = slowing down.
     // Skips agents with too little history to be meaningful (lifetime < 5
     // requests, no firstSeenAt timestamp, or zero recent activity).
     const risingStars: RisingStarEntry[] = [];
@@ -239,7 +262,8 @@ export function createServer(deps: CreateServerDeps): { start(): Promise<void>; 
       // Number() coercion is safe — request counts fit comfortably in 2^53.
       const lifetimeRate = Number(stat.totalRequests) / daysActive;
       if (lifetimeRate <= 0) continue;
-      const score = Number(requests7dBig) / lifetimeRate;
+      const recentRate = Number(requests7dBig) / 7;
+      const score = recentRate / lifetimeRate;
       risingStars.push({
         agentId: stat.agentId,
         score,
