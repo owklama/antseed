@@ -829,6 +829,91 @@ describe('createServer — channels: topRevenue ranking', () => {
   });
 });
 
+// ── Test: indexer payloads — both stats and channels exposed independently ──
+
+describe('createServer — indexer payloads: stats and channels reported separately', () => {
+  const PORT = nextPort();
+  const store = makeStore();
+
+  // Seed each indexer's checkpoint by applying a batch — this writes a row
+  // into indexer_checkpoint keyed on (chainId, contractAddress).
+  store.applyBatch('test', '0xstatscontract', [], 100);
+  store.applyChannelBatch('test', '0xchannelscontract', [], 200);
+
+  // Fake indexers — only need to satisfy the ChainHeadProvider surface that
+  // server.ts consumes (one method, two numbers). Different latestBlock values
+  // so we can tell the two payloads apart in the response.
+  const statsIndexer = { getChainHead: () => ({ latestBlock: 110, reorgSafetyBlocks: 12 }) };
+  const channelsIndexer = { getChainHead: () => ({ latestBlock: 220, reorgSafetyBlocks: 12 }) };
+
+  const poller = makePoller([fakePeer('a', '0xabc')]);
+  const stakingClient = makeStakingClient(() => 0);
+  const handle = createServer({
+    poller,
+    store,
+    stakingClient,
+    indexer: statsIndexer as never,
+    channelsIndexer: channelsIndexer as never,
+    chainId: 'test',
+    contractAddress: '0xstatscontract',
+    channelsContractAddress: '0xchannelscontract',
+    port: PORT,
+  });
+
+  before(async () => { await handle.start(); });
+  after(() => { handle.stop(); store.close(); });
+  beforeEach(() => { __resetAgentIdCacheForTests(); });
+
+  it('exposes synced=true for stats (caught up) and synced=false for channels (behind)', async () => {
+    type Payload = { lastBlock: number; latestBlock?: number; synced?: boolean };
+    const res = await fetch(`http://localhost:${PORT}/stats`);
+    const body = await res.json() as { indexer?: Payload; channelsIndexer?: Payload };
+
+    // Stats: lastBlock=100, latestBlock=110, safety=12 → 100 >= 98 → synced.
+    assert.ok(body.indexer);
+    assert.equal(body.indexer!.lastBlock, 100);
+    assert.equal(body.indexer!.latestBlock, 110);
+    assert.equal(body.indexer!.synced, true);
+
+    // Channels: lastBlock=200, latestBlock=220, safety=12 → 200 >= 208 false.
+    assert.ok(body.channelsIndexer);
+    assert.equal(body.channelsIndexer!.lastBlock, 200);
+    assert.equal(body.channelsIndexer!.latestBlock, 220);
+    assert.equal(body.channelsIndexer!.synced, false);
+  });
+});
+
+describe('createServer — indexer payloads: channelsIndexer omitted when not configured', () => {
+  const PORT = nextPort();
+  const store = makeStore();
+  store.applyBatch('test', '0xstats', [], 100);
+  const statsIndexer = { getChainHead: () => ({ latestBlock: 110, reorgSafetyBlocks: 12 }) };
+
+  const poller = makePoller([fakePeer('a', '0xabc')]);
+  const stakingClient = makeStakingClient(() => 0);
+  const handle = createServer({
+    poller,
+    store,
+    stakingClient,
+    indexer: statsIndexer as never,
+    chainId: 'test',
+    contractAddress: '0xstats',
+    // No channelsIndexer / channelsContractAddress — the field must be absent.
+    port: PORT,
+  });
+
+  before(async () => { await handle.start(); });
+  after(() => { handle.stop(); store.close(); });
+  beforeEach(() => { __resetAgentIdCacheForTests(); });
+
+  it('omits channelsIndexer entirely when not wired', async () => {
+    const res = await fetch(`http://localhost:${PORT}/stats`);
+    const body = await res.json() as Record<string, unknown>;
+    assert.ok('indexer' in body, 'indexer should be present');
+    assert.equal('channelsIndexer' in body, false, 'channelsIndexer must be absent when not configured');
+  });
+});
+
 // ── Test 10: BigInt round-trip ────────────────────────────────────────────────
 
 describe('createServer — enriched: BigInt round-trip for large numbers', () => {

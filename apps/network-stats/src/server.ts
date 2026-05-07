@@ -14,7 +14,12 @@ import type {
   SellerChannelLifetime,
   SellerUsdcWindow,
 } from './store.js';
-import type { MetadataIndexer } from './indexer.js';
+// Narrow surface the server actually consumes from each indexer — both
+// MetadataIndexer and ChannelsIndexer satisfy this structurally. Avoids
+// pinning the deps to a specific generic event type.
+interface ChainHeadProvider {
+  getChainHead(): { latestBlock: number | null; reorgSafetyBlocks: number };
+}
 
 const SECONDS_PER_DAY = 86_400;
 
@@ -141,12 +146,50 @@ function compareBigDesc(a: bigint, b: bigint): number {
 
 export interface CreateServerDeps {
   poller: NetworkPoller;
-  store?: SqliteStore;            // undefined when indexer disabled for this chain
-  stakingClient?: StakingClient;  // undefined when indexer disabled
-  indexer?: MetadataIndexer;      // source of chain head + reorg buffer for sync status
-  chainId?: string;               // used to look up the indexer checkpoint
-  contractAddress?: string;       // contract whose checkpoint to expose
+  store?: SqliteStore;                          // undefined when indexer disabled for this chain
+  stakingClient?: StakingClient;                // undefined when indexer disabled
+  // Stats indexer: source of chain head for the AntseedStats checkpoint payload.
+  indexer?: ChainHeadProvider;
+  chainId?: string;                             // shared across both indexers (same chain)
+  contractAddress?: string;                     // AntseedStats — drives `indexer` payload
+  // Channels indexer: source of chain head for the AntseedChannels checkpoint payload.
+  // Wired alongside `indexer` so frontends consuming `topRevenue` / `channelLifecycle`
+  // can tell whether the channels-side data is caught up.
+  channelsIndexer?: ChainHeadProvider;
+  channelsContractAddress?: string;
   port?: number;
+}
+
+interface IndexerPayload {
+  lastBlock: number;
+  lastBlockTimestamp: number | null;
+  latestBlock?: number;
+  synced?: boolean;
+}
+
+/**
+ * Build the {lastBlock, lastBlockTimestamp, latestBlock?, synced?} payload
+ * for one indexer. Returns null when the chain isn't configured or the
+ * checkpoint hasn't been written yet (cold deploy before the first tick).
+ */
+function buildIndexerPayload(
+  store: SqliteStore,
+  chainId: string | undefined,
+  contractAddress: string | undefined,
+  indexer: ChainHeadProvider | undefined,
+): IndexerPayload | null {
+  if (!chainId || !contractAddress) return null;
+  const info = store.getCheckpointInfo(chainId, contractAddress.toLowerCase());
+  if (!info) return null;
+  const head = indexer?.getChainHead();
+  if (head?.latestBlock != null) {
+    return {
+      ...info,
+      latestBlock: head.latestBlock,
+      synced: info.lastBlock >= head.latestBlock - head.reorgSafetyBlocks,
+    };
+  }
+  return info;
 }
 
 // module-scoped cache, key: lowercased address. Staked peers are cached
@@ -195,7 +238,17 @@ export function __resetAgentIdCacheForTests(): void {
 }
 
 export function createServer(deps: CreateServerDeps): { start(): Promise<void>; stop(): void } {
-  const { poller, store, stakingClient, indexer, chainId, contractAddress, port = 4000 } = deps;
+  const {
+    poller,
+    store,
+    stakingClient,
+    indexer,
+    channelsIndexer,
+    chainId,
+    contractAddress,
+    channelsContractAddress,
+    port = 4000,
+  } = deps;
   const app = express();
 
   app.use((_req, res, next) => {
@@ -288,26 +341,18 @@ export function createServer(deps: CreateServerDeps): { start(): Promise<void>; 
       }),
     );
 
-    const indexerInfo =
-      chainId && contractAddress
-        ? store.getCheckpointInfo(chainId, contractAddress.toLowerCase())
-        : null;
-
-    // Chain head comes from the indexer's in-memory cache, refreshed on every
-    // tick. `synced` is true when the checkpoint has caught up to (latest − reorg
-    // buffer), i.e. there's nothing else the indexer could have processed.
-    const chainHead = indexer?.getChainHead();
-    const indexerPayload = indexerInfo
-      ? {
-          ...indexerInfo,
-          ...(chainHead?.latestBlock != null
-            ? {
-                latestBlock: chainHead.latestBlock,
-                synced: indexerInfo.lastBlock >= chainHead.latestBlock - chainHead.reorgSafetyBlocks,
-              }
-            : {}),
-        }
-      : null;
+    // Chain head comes from each indexer's in-memory cache, refreshed on
+    // every tick. `synced` is true when the checkpoint has caught up to
+    // (latest − reorg buffer), i.e. there's nothing else the indexer could
+    // have processed. Both payloads are independent so a frontend can tell
+    // whether the stats-side or channels-side data is caught up.
+    const indexerPayload = buildIndexerPayload(store, chainId, contractAddress, indexer);
+    const channelsIndexerPayload = buildIndexerPayload(
+      store,
+      chainId,
+      channelsContractAddress,
+      channelsIndexer,
+    );
 
     const networkTotals = store.getNetworkTotals();
 
@@ -467,6 +512,7 @@ export function createServer(deps: CreateServerDeps): { start(): Promise<void>; 
         },
       },
       ...(indexerPayload ? { indexer: indexerPayload } : {}),
+      ...(channelsIndexerPayload ? { channelsIndexer: channelsIndexerPayload } : {}),
     });
   });
 

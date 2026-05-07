@@ -96,8 +96,12 @@ const server = createServer({
   ...(store ? { store } : {}),
   ...(stakingClient ? { stakingClient } : {}),
   ...(indexer ? { indexer } : {}),
+  ...(channelsIndexer ? { channelsIndexer } : {}),
   ...(store && chainConfig.statsContractAddress
     ? { chainId: CHAIN_ID, contractAddress: chainConfig.statsContractAddress }
+    : {}),
+  ...(store && chainConfig.channelsContractAddress && typeof chainConfig.channelsDeployBlock === 'number'
+    ? { channelsContractAddress: chainConfig.channelsContractAddress }
     : {}),
   port: PORT,
 });
