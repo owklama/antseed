@@ -1236,3 +1236,72 @@
   text-decoration: none;
 }
 .relatedRow a:hover { border-color: #1FD87A; text-decoration: none; }
+
+/* ============================================================
+ * Mobile (≤ 720px)
+ *
+ * The page is content-dense and uses a lot of inline `<code>` for
+ * env-var names, file paths, and CLI commands. Long unbroken tokens
+ * (ANTHROPIC_BASE_URL, ~/.antseed/buyer.state.json) push the column
+ * past the viewport on phones if we don't tell them to wrap.
+ *
+ * Fixes here:
+ *   1. Force wrapping on inline code + prose so words can break.
+ *   2. Loosen min-widths that prevented flex/grid from shrinking.
+ *   3. Trim padding so 100% of the screen is usable.
+ *   4. Scale the page H1 down so it fits.
+ * ============================================================ */
+@media (max-width: 720px) {
+  /* Detail page wrapper: cut horizontal padding so content has room. */
+  .detailWrap { padding: 28px 16px 56px; }
+
+  /* Header: let text shrink below 240px and scale the H1. */
+  .detailHeader { gap: 14px; margin-bottom: 18px; }
+  .detailHeaderText { min-width: 0; flex: 1 1 100%; }
+  .detailHeaderText h1 {
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+  }
+  .detailLogo { width: 48px; height: 48px; border-radius: 12px; }
+  .detailLogo img { max-width: 32px; max-height: 32px; }
+  .detailLogo span { font-size: 22px; }
+  .detailOneLiner { font-size: 14px; }
+
+  /* Long inline tokens (ANTHROPIC_BASE_URL, ~/.antseed/...) must wrap.
+   * `anywhere` lets them break mid-word; we keep the monospace look. */
+  .description,
+  .description p,
+  .runFirstHint,
+  .runFirstStepTitle,
+  .glossaryList li,
+  .runFirstFieldList li,
+  .relatedRow a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .description code,
+  .runFirstHint code,
+  .glossaryList code,
+  .runFirstFieldList code {
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  /* Run-first banner: tighter padding, header stacks. */
+  .runFirst { padding: 14px 16px 16px; }
+  .runFirstHeader { gap: 10px; }
+  .runFirstSub { font-size: 13px; }
+
+  /* Glossary: lighter padding so the green box doesn't crowd the text. */
+  .glossary { padding: 14px 16px; }
+
+  /* Hub hero: trim vertical padding on small screens. */
+  .hero { padding: 48px 16px 24px; }
+  .heroSub { font-size: 15px; }
+
+  /* Hub card grid: align with detailWrap padding. */
+  .sections { padding: 0 16px; }
+  .jumpNav { padding: 0 16px; }
+  .searchRow { padding: 0 16px; }
+}
