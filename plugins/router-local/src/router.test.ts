@@ -8,7 +8,6 @@ function makePeer(overrides?: Partial<PeerInfo>): PeerInfo {
     lastSeen: Date.now(),
     providers: ['anthropic'],
     reputationScore: 80,
-    trustScore: 80,
     defaultInputUsdPerMillion: 10,
     defaultOutputUsdPerMillion: 10,
     providerPricing: {
@@ -73,7 +72,7 @@ describe('LocalRouter', () => {
 
   it('uses default minReputation of 0', () => {
     const router = new LocalRouter();
-    const lowRep = makePeer({ reputationScore: 1, trustScore: 1 });
+    const lowRep = makePeer({ reputationScore: 1 });
     expect(router.selectPeer(makeRequest(), [lowRep])?.peerId).toBe(lowRep.peerId);
   });
 
@@ -143,7 +142,6 @@ describe('LocalRouter', () => {
     });
     const lowRepAllowedPrice = makePeer({
       reputationScore: 1,
-      trustScore: 1,
       providerPricing: {
         anthropic: {
           defaults: { inputUsdPerMillion: 5, outputUsdPerMillion: 5 },
@@ -152,7 +150,6 @@ describe('LocalRouter', () => {
     });
     const highRepOverpriced = makePeer({
       reputationScore: 90,
-      trustScore: 90,
       providerPricing: {
         anthropic: {
           defaults: { inputUsdPerMillion: 5, outputUsdPerMillion: 100 },
@@ -270,24 +267,21 @@ describe('LocalRouter', () => {
     const lowRep = makePeer({
       peerId: '1'.repeat(40) as PeerInfo['peerId'],
       reputationScore: 40,
-      trustScore: 40,
     });
     const highRep = makePeer({
       peerId: '2'.repeat(40) as PeerInfo['peerId'],
       reputationScore: 90,
-      trustScore: 90,
     });
 
     const selected = router.selectPeer(makeRequest(), [lowRep, highRep]);
     expect(selected?.peerId).toBe(highRep.peerId);
   });
 
-  it('keeps peers eligible when reputation fields are missing', () => {
+  it('keeps peers eligible when reputation fields are missing and minimum is zero', () => {
     const router = new LocalRouter();
     const unrated = makePeer({
       peerId: '1'.repeat(40) as PeerInfo['peerId'],
       reputationScore: undefined,
-      trustScore: undefined,
       onChainChannelCount: undefined,
     });
 
@@ -295,11 +289,21 @@ describe('LocalRouter', () => {
     expect(selected?.peerId).toBe(unrated.peerId);
   });
 
+  it('filters missing reputation when minimum is raised', () => {
+    const router = new LocalRouter({ minReputation: 1 });
+    const unrated = makePeer({
+      peerId: '1'.repeat(40) as PeerInfo['peerId'],
+      reputationScore: undefined,
+      onChainChannelCount: undefined,
+    });
+
+    expect(router.selectPeer(makeRequest(), [unrated])).toBeNull();
+  });
+
   it('treats on-chain zero reputation with zero sessions as unrated', () => {
     const router = new LocalRouter();
     const newSeller = makePeer({
       peerId: '3'.repeat(40) as PeerInfo['peerId'],
-      trustScore: 0,
       reputationScore: undefined,
       onChainChannelCount: 0,
       onChainGhostCount: 0,

@@ -222,7 +222,6 @@ export type AssistantMeta = {
   peerAddress: string | null;
   peerProviders: string[];
   peerReputation: number | null;
-  peerTrustScore: number | null;
   peerCurrentLoad: number | null;
   peerMaxConcurrency: number | null;
   routeRequestId: string | null;
@@ -364,7 +363,6 @@ export function normalizeAssistantMeta(msg: ChatMessage): AssistantMeta | null {
   const costUsd = Number.isFinite(Number(meta.estimatedCostUsd)) ? Number(meta.estimatedCostUsd) : 0;
   const latencyMs = Number.isFinite(Number(meta.latencyMs)) ? Number(meta.latencyMs) : 0;
   const peerReputation = Number.isFinite(Number(meta.peerReputation)) ? Number(meta.peerReputation) : null;
-  const peerTrustScore = Number.isFinite(Number(meta.peerTrustScore)) ? Number(meta.peerTrustScore) : null;
   const peerCurrentLoad = Number.isFinite(Number(meta.peerCurrentLoad)) ? Number(meta.peerCurrentLoad) : null;
   const peerMaxConcurrency = Number.isFinite(Number(meta.peerMaxConcurrency)) ? Number(meta.peerMaxConcurrency) : null;
   const routeRequestId = typeof meta.routeRequestId === 'string' && (meta.routeRequestId as string).trim().length > 0 ? (meta.routeRequestId as string).trim() : null;
@@ -373,7 +371,6 @@ export function normalizeAssistantMeta(msg: ChatMessage): AssistantMeta | null {
     peerAddress,
     peerProviders,
     peerReputation,
-    peerTrustScore,
     peerCurrentLoad,
     peerMaxConcurrency,
     routeRequestId,
@@ -481,7 +478,6 @@ export function buildChatMetaParts(msg: ChatMessage): string[] {
     if (assistantMeta.costUsd > 0) parts.push(`$${formatUsd(assistantMeta.costUsd)}`);
     if (assistantMeta.latencyMs > 0) parts.push(`${Math.round(assistantMeta.latencyMs)}ms`);
     if (assistantMeta.peerReputation !== null) parts.push(`rep ${Math.round(assistantMeta.peerReputation)}`);
-    if (assistantMeta.peerTrustScore !== null) parts.push(`trust ${Math.round(assistantMeta.peerTrustScore)}`);
     if (
       assistantMeta.peerCurrentLoad !== null &&
       assistantMeta.peerMaxConcurrency !== null &&

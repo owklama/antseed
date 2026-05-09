@@ -64,7 +64,7 @@ function normalizedInverted(value: number, min: number, range: number): number {
 }
 
 function effectiveReputation(p: PeerInfo): number {
-  return computeOnChainReputationScore(p) ?? p.trustScore ?? p.reputationScore ?? 0
+  return computeOnChainReputationScore(p) ?? p.reputationScore ?? 0
 }
 
 function availableCapacity(p: PeerInfo): number {

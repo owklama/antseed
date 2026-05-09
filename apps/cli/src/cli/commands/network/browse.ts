@@ -192,8 +192,12 @@ function resolveBestPaidPricing(peer: PeerInfo): { input: number | null; output:
   return { input: bestInput, output: bestOutput };
 }
 
+function effectiveOnChainReputationScore(peer: PeerInfo): number | null {
+  return peer.onChainReputationScore ?? computeOnChainReputationScore(peer);
+}
+
 function formatReputationScore(peer: PeerInfo): string {
-  const score = computeOnChainReputationScore(peer);
+  const score = effectiveOnChainReputationScore(peer);
   if (score == null) return chalk.dim('—');
   const formatted = (score / 10).toFixed(1);
   if (score >= 80) return chalk.green(formatted);
@@ -203,13 +207,15 @@ function formatReputationScore(peer: PeerInfo): string {
 }
 
 function peerReputationScore(peer: PeerInfo): number {
-  return computeOnChainReputationScore(peer) ?? -1;
+  return effectiveOnChainReputationScore(peer) ?? -1;
 }
 
-function peerWithReputationScore(peer: PeerInfo): PeerInfo & { onChainReputationScore: number | null } {
+type PeerInfoJson = Omit<PeerInfo, 'onChainReputationScore'> & { onChainReputationScore: number | null };
+
+function peerWithReputationScore(peer: PeerInfo): PeerInfoJson {
   return {
     ...peer,
-    onChainReputationScore: computeOnChainReputationScore(peer),
+    onChainReputationScore: effectiveOnChainReputationScore(peer),
   };
 }
 

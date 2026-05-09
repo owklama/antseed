@@ -53,10 +53,16 @@ describe('DefaultRouter', () => {
       expect(router.selectPeer(dummyReq, [lowRep])).not.toBeNull();
     });
 
-    it('should keep peers eligible when reputation is missing', () => {
+    it('should keep peers eligible when reputation is missing and minimum is zero', () => {
       const router = new DefaultRouter();
       const peer = makePeer({ reputationScore: undefined });
       expect(router.selectPeer(dummyReq, [peer])).not.toBeNull();
+    });
+
+    it('should filter missing reputation when minimum is raised', () => {
+      const router = new DefaultRouter({ minReputation: 1 });
+      const peer = makePeer({ reputationScore: undefined });
+      expect(router.selectPeer(dummyReq, [peer])).toBeNull();
     });
 
     it('should enforce minReputation for explicit on-chain reputation', () => {
@@ -64,7 +70,6 @@ describe('DefaultRouter', () => {
       const lowOnChain = makePeer({
         peerId: 'a'.repeat(40) as any,
         reputationScore: undefined,
-        trustScore: undefined,
         onChainChannelCount: 25,
         onChainTotalVolumeUsdcMicros: 10_000_000,
         onChainLastSettledAtSec: Math.floor(Date.now() / 1000),
@@ -72,7 +77,6 @@ describe('DefaultRouter', () => {
       const highOnChain = makePeer({
         peerId: 'b'.repeat(40) as any,
         reputationScore: undefined,
-        trustScore: undefined,
         onChainChannelCount: 90,
         onChainTotalVolumeUsdcMicros: 250_000_000,
         onChainLastSettledAtSec: Math.floor(Date.now() / 1000),
@@ -87,7 +91,6 @@ describe('DefaultRouter', () => {
       const newSeller = makePeer({
         peerId: 'a'.repeat(40) as any,
         reputationScore: undefined,
-        trustScore: 0,
         onChainChannelCount: 0,
         onChainGhostCount: 0,
       });

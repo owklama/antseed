@@ -80,8 +80,21 @@ export interface PeerInfo {
   maxConcurrency?: number;
   /** Current number of requests the peer is handling. */
   currentLoad?: number;
-  /** Computed trust score (0-100) from the trust engine. */
-  trustScore?: number;
+  /**
+   * On-chain ERC-8004 agent ID from `AntseedStaking.getAgentId`.
+   * Read by the buyer directly from the chain.
+   */
+  onChainAgentId?: number;
+  /**
+   * On-chain seller stake in micro-USDC from `AntseedStaking.getStake`.
+   * Read by the buyer directly from the chain.
+   */
+  onChainStakeUsdcMicros?: number;
+  /**
+   * Buyer-computed on-chain reputation score (0-100), derived from the
+   * on-chain stats below and cached for non-routing UI consumers.
+   */
+  onChainReputationScore?: number;
   /**
    * On-chain settled channel count from `AntseedChannels.getAgentStats`.
    * Read by the buyer directly from the chain — never trusted from peer metadata.

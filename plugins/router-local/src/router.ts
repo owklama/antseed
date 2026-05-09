@@ -68,11 +68,8 @@ export class LocalRouter implements Router {
 
     for (const peer of peers) {
       // Reputation filter
-      if (this._hasReputation(peer)) {
-        const reputation = this._effectiveReputation(peer);
-        if (reputation < this._minReputation) {
-          continue;
-        }
+      if (this._effectiveReputation(peer) < this._minReputation) {
+        continue;
       }
 
       // Cooldown filter
@@ -149,13 +146,7 @@ export class LocalRouter implements Router {
   }
 
   private _effectiveReputation(p: PeerInfo): number {
-    return computeOnChainReputationScore(p) ?? p.trustScore ?? p.reputationScore ?? 0;
-  }
-
-  private _hasReputation(p: PeerInfo): boolean {
-    return computeOnChainReputationScore(p) != null
-      || this._isFiniteNonNegative(p.trustScore)
-      || this._isFiniteNonNegative(p.reputationScore);
+    return computeOnChainReputationScore(p) ?? p.reputationScore ?? 0;
   }
 
   private _extractRequestedService(req: SerializedHttpRequest): string | null {

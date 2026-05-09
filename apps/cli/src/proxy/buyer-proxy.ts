@@ -3,15 +3,16 @@ import { randomUUID } from 'node:crypto'
 import { watchFile, unwatchFile } from 'node:fs'
 import { readFile, writeFile, rename, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type {
-  AntseedNode,
-  PeerInfo,
-  PeerMetadata,
-  RequestStreamResponseMetadata,
-  Router,
-  SerializedHttpRequest,
-  SerializedHttpResponse,
-  SerializedHttpResponseChunk,
+import {
+  computeOnChainReputationScore,
+  type AntseedNode,
+  type PeerInfo,
+  type PeerMetadata,
+  type RequestStreamResponseMetadata,
+  type Router,
+  type SerializedHttpRequest,
+  type SerializedHttpResponse,
+  type SerializedHttpResponseChunk,
 } from '@antseed/node'
 import {
   createOpenAIChatToAnthropicStreamingAdapter,
@@ -276,6 +277,15 @@ export function parsePersistedPeers(
     }
     if (typeof entry.maxConcurrency === 'number') {
       peer.maxConcurrency = entry.maxConcurrency
+    }
+    if (typeof entry.onChainAgentId === 'number' && Number.isFinite(entry.onChainAgentId)) {
+      peer.onChainAgentId = entry.onChainAgentId
+    }
+    if (typeof entry.onChainStakeUsdcMicros === 'number' && Number.isFinite(entry.onChainStakeUsdcMicros)) {
+      peer.onChainStakeUsdcMicros = entry.onChainStakeUsdcMicros
+    }
+    if (typeof entry.onChainReputationScore === 'number' && Number.isFinite(entry.onChainReputationScore)) {
+      peer.onChainReputationScore = entry.onChainReputationScore
     }
     if (typeof entry.onChainChannelCount === 'number' && Number.isFinite(entry.onChainChannelCount)) {
       peer.onChainChannelCount = entry.onChainChannelCount
@@ -593,14 +603,17 @@ export class BuyerProxy {
         defaultCachedInputUsdPerMillion: p.defaultCachedInputUsdPerMillion ?? null,
         maxConcurrency: p.maxConcurrency ?? 0,
         currentLoad: p.currentLoad ?? null,
-        // On-chain stats read authoritatively by the buyer from AntseedChannels.
-        // Persisted so `antseed network browse` can render richer UI without a
-        // fresh DHT + RPC round-trip.
+        // On-chain stats read authoritatively by the buyer from AntseedChannels/Staking.
+        // Persisted so CLI/desktop surfaces can render richer UI without their
+        // own duplicate staking/channel RPC and reputation-score implementations.
+        onChainAgentId: p.onChainAgentId ?? null,
+        onChainStakeUsdcMicros: p.onChainStakeUsdcMicros ?? null,
         onChainChannelCount: p.onChainChannelCount ?? null,
         onChainGhostCount: p.onChainGhostCount ?? null,
         onChainTotalVolumeUsdcMicros: p.onChainTotalVolumeUsdcMicros ?? null,
         onChainLastSettledAtSec: p.onChainLastSettledAtSec ?? null,
         onChainStakedAtSec: p.onChainStakedAtSec ?? null,
+        onChainReputationScore: p.onChainReputationScore ?? computeOnChainReputationScore(p) ?? null,
         onChainStatsFetchedAt: p.onChainStatsFetchedAt ?? null,
         // Persisted so cold-started buyers can still resolve the facade address
         // for channelId derivation. See parsePersistedPeers for the round-trip.
@@ -762,13 +775,12 @@ export class BuyerProxy {
       const providers = peer.providers
         .map((provider) => provider.trim())
         .filter((provider) => provider.length > 0)
-      const trust = Number.isFinite(peer.trustScore) ? String(peer.trustScore) : 'n/a'
       const rep = Number.isFinite(peer.reputationScore) ? String(peer.reputationScore) : 'n/a'
       const onChain = Number.isFinite(peer.onChainChannelCount) ? String(peer.onChainChannelCount) : 'n/a'
       const input = Number.isFinite(peer.defaultInputUsdPerMillion) ? String(peer.defaultInputUsdPerMillion) : 'n/a'
       const output = Number.isFinite(peer.defaultOutputUsdPerMillion) ? String(peer.defaultOutputUsdPerMillion) : 'n/a'
 
-      return `${peer.peerId.slice(0, 8)} providers=[${providers.join(',') || 'none'}] trust=${trust} rep=${rep} onchain=${onChain} in=${input} out=${output}`
+      return `${peer.peerId.slice(0, 8)} providers=[${providers.join(',') || 'none'}] rep=${rep} onchain=${onChain} in=${input} out=${output}`
     }
 
     const samples = peers.slice(0, 5).map((peer) => summarize(peer)).join(' | ')
@@ -818,7 +830,6 @@ export class BuyerProxy {
         providerServiceCategories: p.providerServiceCategories,
         providerServiceApiProtocols: p.providerServiceApiProtocols,
         reputationScore: p.reputationScore,
-        trustScore: p.trustScore,
         lastSeen: p.lastSeen,
       }))
       res.writeHead(200, { 'content-type': 'application/json' })

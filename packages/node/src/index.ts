@@ -97,10 +97,7 @@ export { DefaultRouter, type DefaultRouterConfig } from './routing/default-route
 export type { AntseedPlugin, AntseedProviderPlugin, AntseedRouterPlugin, PluginConfigKey, ConfigField } from './interfaces/plugin.js'
 
 // Reputation
-export { TrustScoreEngine } from './reputation/trust-engine.js';
 export { UptimeTracker } from './reputation/uptime-tracker.js';
-export { computeTrustScore, DEFAULT_TRUST_WEIGHTS } from './reputation/trust-score.js';
-export type { TrustScore, TrustComponents } from './reputation/trust-score.js';
 export {
   computeOnChainReputationBreakdown,
   computeOnChainReputationScore,
