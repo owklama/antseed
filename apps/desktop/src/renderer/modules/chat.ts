@@ -1491,6 +1491,7 @@ export function initChatModule({
     uiState.chatDeleteVisible = false;
     uiState.chatInputDisabled = false;
     uiState.chatSendDisabled = false;
+    uiState.chatAbortVisible = false;
     uiState.chatConversationTitle = 'New Chat';
     uiState.chatError = null;
     updateThreadMeta(null);
