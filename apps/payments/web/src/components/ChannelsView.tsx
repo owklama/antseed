@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseAbi } from 'viem';
 import type { PaymentConfig } from '../types';
@@ -37,6 +37,71 @@ function getRowStatus(session: ChannelData): RowStatus {
   if (now < session.closeRequestedAt + GRACE_PERIOD) return 'closing';
   return 'withdrawable';
 }
+
+// Status icons matching PR #445 pattern
+function ActiveIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="7" cy="7" r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ClosingIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4 7h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WithdrawableIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M7 2v9M4 8l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SettledIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4.5 7l2 2 3-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TimedOutIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7 4v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="7" cy="9.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ClosedIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const STATUS_ICONS: Record<RowStatus, React.ReactNode> = {
+  active:       <ActiveIcon />,
+  closing:      <ClosingIcon />,
+  withdrawable: <WithdrawableIcon />,
+  settled:      <SettledIcon />,
+  timedout:     <TimedOutIcon />,
+  closed:       <ClosedIcon />,
+};
 
 const STATUS_META: Record<RowStatus, { label: string; modifier: string }> = {
   active:       { label: 'Active',       modifier: 'status-pill--active' },
@@ -146,7 +211,10 @@ function ChannelRow({
         {session.channelId.slice(0, 10)}…
       </td>
       <td>
-        <span className={`status-pill ${meta.modifier}`}>{pillLabel}</span>
+        <span className={`status-pill ${meta.modifier}`}>
+          <span className="status-pill-icon">{STATUS_ICONS[status]}</span>
+          {pillLabel}
+        </span>
       </td>
       <td className="channels-table-num">${session.deposit}</td>
       <td className="channels-table-num">${session.settled}</td>

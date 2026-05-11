@@ -800,6 +800,7 @@ function TrustDetailsModal({
   );
 }
 
+// Connected flow cards matching PR #445 pattern
 function DepositWizard({
   currentStep,
   isApproved,
@@ -815,37 +816,64 @@ function DepositWizard({
   isDepositing: boolean;
   amount: string;
 }) {
+  const step1State = currentStep === 1 ? 'active' : isApproved ? 'complete' : 'pending';
+  const step2State = currentStep === 2 ? 'active' : isApproved ? 'ready' : 'locked';
+
   return (
-    <div className="deposit-wizard" aria-label="Deposit wizard">
-      <div className="deposit-wizard-track" aria-hidden="true">
-        <span className="deposit-wizard-track-fill" style={{ width: currentStep === 2 ? '100%' : '0%' }} />
+    <div className="deposit-flow-cards" aria-label="Deposit wizard">
+      {/* Connecting rail */}
+      <div className="deposit-flow-rail" aria-hidden="true">
+        <div
+          className="deposit-flow-rail-fill"
+          style={{ width: isApproved ? '100%' : '0%' }}
+        />
       </div>
-      <div className={`deposit-wizard-step ${currentStep === 1 ? 'deposit-wizard-step--active' : 'deposit-wizard-step--complete'}`}>
-        <div className="deposit-wizard-number">{isApproved ? '✓' : '1'}</div>
-        <div className="deposit-wizard-content">
-          <div className="deposit-wizard-kicker">Step 1</div>
-          <div className="deposit-wizard-title">Approve USDC</div>
-          <div className="deposit-wizard-copy">
+
+      {/* Step 1: Approve USDC */}
+      <div className={`deposit-flow-card ${step1State === 'complete' ? 'complete' : ''}`}>
+        <div className={`deposit-flow-chip ${step1State}`}>
+          {step1State === 'complete' ? (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            '1'
+          )}
+        </div>
+        <div className="deposit-flow-content">
+          <div className="deposit-flow-label">Step 1</div>
+          <div className="deposit-flow-title">Approve USDC</div>
+          <div className="deposit-flow-desc">
             {isCheckingAllowance
               ? 'Checking your existing approval on-chain…'
               : isApproved
-                ? 'Already approved. You can skip straight to step 2.'
+                ? 'Already approved. Ready for step 2.'
                 : isApproving
                   ? 'Confirm approval in your wallet. This does not move funds.'
-                  : `Permit AntSeed's Deposits contract to use ${amount} USDC. Approval only grants permission.`}
+                  : `Permit AntSeed's Deposits contract to use ${amount} USDC.`}
           </div>
         </div>
       </div>
-      <div className={`deposit-wizard-step ${currentStep === 2 ? 'deposit-wizard-step--active' : 'deposit-wizard-step--locked'}`}>
-        <div className="deposit-wizard-number">2</div>
-        <div className="deposit-wizard-content">
-          <div className="deposit-wizard-kicker">Step 2</div>
-          <div className="deposit-wizard-title">Deposit credits</div>
-          <div className="deposit-wizard-copy">
+
+      {/* Step 2: Deposit credits */}
+      <div className={`deposit-flow-card ${step2State === 'ready' ? 'ready' : step2State === 'locked' ? 'locked' : ''}`}>
+        <div className={`deposit-flow-chip ${step2State}`}>
+          {step2State === 'ready' ? (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            '2'
+          )}
+        </div>
+        <div className="deposit-flow-content">
+          <div className="deposit-flow-label">Step 2</div>
+          <div className="deposit-flow-title">Deposit credits</div>
+          <div className="deposit-flow-desc">
             {isDepositing
               ? 'Confirm the deposit transaction. This moves USDC into your AntSeed balance.'
               : isApproved
-                ? 'Approval detected. The next click deposits USDC into your AntSeed balance.'
+                ? 'Ready to deposit USDC into your AntSeed balance.'
                 : 'Locked until approval is confirmed.'}
           </div>
         </div>

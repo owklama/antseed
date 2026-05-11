@@ -229,7 +229,7 @@ function AppShell({
           />
           <AuthorizeWalletAlert />
           <main className="dash-content">
-            {activeTab === 'dashboard' && <DashboardView config={config} />}
+            {activeTab === 'dashboard' && <DashboardView config={config} balance={balance} />}
             {activeTab === 'channels'  && <ChannelsView  config={config} />}
             {activeTab === 'emissions' && <EmissionsView config={config} />}
             {activeTab === 'diem-rewards' && <DiemRewardsView config={config} />}
