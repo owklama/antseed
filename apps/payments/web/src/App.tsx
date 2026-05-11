@@ -218,6 +218,7 @@ function AppShell({
           onSelect={onSelectTab}
           isDark={isDark}
           onToggleTheme={onToggleTheme}
+          config={config}
         />
         <div className="dash-main">
           <TopBar

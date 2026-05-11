@@ -14,9 +14,10 @@
     "build": "npm run build:server && npm run build:web",
     "build:server": "tsc -p tsconfig.json",
     "build:web": "vite build",
-    "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:server\"",
+    "dev": "tsc -p tsconfig.json && ANTSEED_PAYMENTS_DEV_TOKEN=${ANTSEED_PAYMENTS_DEV_TOKEN:-dev} concurrently -k -n web,tsc,node -c green,blue,yellow \"npm:dev:web\" \"npm:dev:server\" \"npm:dev:run\"",
     "dev:web": "vite",
     "dev:server": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "dev:run": "node --watch dist/index.js",
     "start": "node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
