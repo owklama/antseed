@@ -102,6 +102,326 @@
     0 4px 16px -6px rgba(0, 0, 0, 0.4);
 }
 
+/* ── Wallet architecture hint ────────────────────────────────────
+ * Collapsible chip that introduces AntSeed's two-wallet model
+ * (Owner ⇄ Vault ⇄ Signer). Closed by default — a low-rent pill
+ * that costs ~36px of vertical space. When expanded, opens a single
+ * coherent flow diagram tailored to the active deposit method. */
+
+.rh-arch {
+  margin: -4px 0 14px;
+}
+
+.rh-arch-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, border-radius 0.24s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--card-border));
+    color: var(--text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .rh-arch.is-open & {
+    border-radius: 14px 14px 0 0;
+    border-bottom-color: transparent;
+    background: var(--input-bg);
+    color: var(--text-primary);
+  }
+}
+
+.rh-arch-trigger-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 18px;
+  height: 10px;
+  flex-shrink: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    right: 4px;
+    height: 1px;
+    transform: translateY(-50%);
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--text-muted) 70%, transparent) 0 1.5px,
+      transparent 1.5px 3.5px
+    );
+    background-size: 3.5px 1px;
+    background-repeat: repeat-x;
+    opacity: 0.6;
+  }
+}
+
+.rh-arch-trigger-dot {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--card-bg);
+
+  &:last-child {
+    background: var(--text-secondary);
+    box-shadow: 0 0 0 2px var(--card-bg);
+  }
+}
+
+.rh-arch.is-open .rh-arch-trigger-mark::before {
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--text-muted) 70%, transparent) 0 1.5px,
+    transparent 1.5px 3.5px
+  );
+}
+
+.rh-arch.is-open .rh-arch-trigger-dot {
+  box-shadow: 0 0 0 2px var(--input-bg);
+}
+
+.rh-arch-trigger-text {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.rh-arch-trigger-ctx {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.rh-arch-trigger-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+
+  .rh-arch.is-open & {
+    transform: rotate(180deg);
+    color: var(--text-secondary);
+  }
+}
+
+/* ── Expanded body ── */
+.rh-arch-body {
+  padding: 14px 14px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--card-border);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  animation: rh-arch-expand 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top;
+}
+
+@keyframes rh-arch-expand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Permission matrix ─────────────────────────────────────
+ * A small table that shows what each role can and can't do.
+ * Tabular reads as "real system spec" rather than marketing
+ * copy. Hairline borders only — no fills, no icon tiles. */
+
+.rh-arch-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'cv11';
+
+  th, td {
+    padding: 9px 0;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  thead th {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--card-border);
+    vertical-align: bottom;
+  }
+
+  tbody tr + tr th,
+  tbody tr + tr td {
+    border-top: 1px dashed color-mix(in srgb, var(--card-border) 65%, transparent);
+  }
+
+  /* Row label */
+  tbody th[scope="row"] {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--text-primary);
+  }
+
+  /* Cell columns are equal-width, right side of the table */
+  thead th:nth-child(2),
+  thead th:nth-child(3),
+  tbody td {
+    width: 88px;
+    text-align: center;
+  }
+}
+
+.rh-arch-grid-col-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.rh-arch-grid-col-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Cell content (mark + optional inline note) ── */
+.rh-arch-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.rh-arch-cell-note {
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+
+  .rh-arch-cell--yes & { color: var(--accent-text); font-style: normal; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; font-size: 9px; }
+}
+
+/* ── Marks ── */
+.rh-arch-mark {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.rh-arch-mark--yes {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.rh-arch-mark--no {
+  width: 10px;
+  height: 1px;
+  background: var(--text-faint);
+}
+
+.rh-arch-mark--never {
+  position: relative;
+  width: 9px;
+  height: 9px;
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 9px;
+    height: 1.2px;
+    background: var(--danger);
+    border-radius: 1px;
+  }
+  &::before { transform: rotate(45deg); }
+  &::after  { transform: rotate(-45deg); }
+}
+
+/* "never" cells get the danger-colored note */
+.rh-arch-cell--never .rh-arch-cell-note {
+  color: var(--danger);
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+/* ── Optional tail line (e.g., card variant note) ── */
+.rh-arch-tail {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  color: var(--text-muted);
+
+  &::before {
+    content: '↳';
+    margin-right: 6px;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+}
+
+/* Narrow widths: shrink cell columns slightly */
+@media (max-width: 380px) {
+  .rh-arch-grid {
+    thead th:nth-child(2),
+    thead th:nth-child(3),
+    tbody td {
+      width: 72px;
+    }
+    tbody th[scope="row"] { font-size: 11px; }
+  }
+}
+
 /* ── Form container ── */
 
 .rh-form {
@@ -977,6 +1297,115 @@
   line-height: 1.55;
   color: var(--text-muted);
   max-width: 300px;
+}
+
+/* ── Card deposit — provider list ── */
+
+.rh-card-intro {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.rh-providers {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: var(--card-bg);
+  overflow: hidden;
+}
+
+.rh-provider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.14s ease;
+
+  & + .rh-provider {
+    border-top: 1px solid var(--card-border);
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--card-hover);
+    outline: none;
+
+    .rh-provider-cta {
+      color: var(--text-primary);
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--card-border));
+
+      svg { transform: translateX(2px); }
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+}
+
+.rh-provider-logo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.rh-provider-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rh-provider-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.rh-provider-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.rh-provider-cta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-secondary);
+  background: var(--input-bg);
+  transition: color 0.14s ease, border-color 0.14s ease;
+
+  svg { transition: transform 0.18s ease; }
+}
+
+.rh-card-foot {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* ──────────────────────────────────────────────────────────────────

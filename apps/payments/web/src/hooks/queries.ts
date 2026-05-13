@@ -8,6 +8,10 @@ import {
   getEmissionsPending,
   getEmissionsShares,
   getNetworkStats,
+  getSellerActivity,
+  getSellerNetworkStats,
+  getSellerStatus,
+  getSellerVolumeSeries,
   getTransfersEnabled,
 } from '../lib/api';
 import { scanDiemEpochs } from '../lib/diem-scan';
@@ -16,9 +20,17 @@ export const queryKeys = {
   balance: ['balance'] as const,
   config: ['config'] as const,
   buyerUsage: ['buyer-usage'] as const,
+  sellerStatus: ['seller-status'] as const,
+  sellerActivity: ['seller-activity'] as const,
+  sellerVolumeSeries: (days: number) => ['seller-volume-series', days] as const,
+  sellerNetworkStats: (url: string, agentId: number) => ['seller-network-stats', url, agentId] as const,
   networkStats: (url: string) => ['network-stats', url] as const,
   // Prefix keys — invalidating these prefix-matches every query under them
-  // (react-query's default invalidate behavior is by-prefix).
+  // (react-query's default invalidate behavior is by-prefix). Invalidating
+  // `emissions` after a claim refetches `info`, `pending`, `shares`, AND
+  // `transfersEnabled`. The transfersEnabled refetch is intentional but
+  // cheap (60s staleTime gates the actual network call) — keep it under
+  // this prefix so the ANTS-token side stays in sync with claims.
   emissions: ['emissions'] as const,
   diem: ['diem-scan'] as const,
   emissionsInfo: ['emissions', 'info'] as const,
@@ -58,6 +70,66 @@ export function useBuyerUsage() {
     queryKey: queryKeys.buyerUsage,
     queryFn: getBuyerUsage,
     staleTime: 30_000,
+  });
+}
+
+export function useSellerStatus() {
+  return useQuery({
+    queryKey: queryKeys.sellerStatus,
+    queryFn: getSellerStatus,
+    // Stake rarely changes mid-session — re-check every minute is plenty,
+    // but keep the query "fresh" for 30s to avoid back-to-back refetches when
+    // several components mount at once.
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    retry: false,
+  });
+}
+
+/** Convenience boolean: true once the seller-status query has resolved with stake > 0. */
+export function useIsSeller(): boolean {
+  const { data } = useSellerStatus();
+  return data?.isSeller ?? false;
+}
+
+export function useSellerActivity() {
+  const isSeller = useIsSeller();
+  return useQuery({
+    queryKey: queryKeys.sellerActivity,
+    queryFn: getSellerActivity,
+    // Channel volume + last-settled-at can change as buyers settle, but not
+    // every block. A 30s heartbeat keeps the cards responsive without
+    // spamming the RPC.
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    enabled: isSeller,
+    retry: false,
+  });
+}
+
+export function useSellerVolumeSeries(days = 30) {
+  const isSeller = useIsSeller();
+  return useQuery({
+    queryKey: queryKeys.sellerVolumeSeries(days),
+    queryFn: () => getSellerVolumeSeries(days),
+    // Server caches for 60s and a daily-bucketed chart doesn't change minute
+    // to minute; align client refresh with that.
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    enabled: isSeller,
+    retry: false,
+  });
+}
+
+export function useSellerNetworkStats(networkStatsUrl: string | null, agentId: number | null) {
+  return useQuery({
+    queryKey: queryKeys.sellerNetworkStats(networkStatsUrl ?? '', agentId ?? 0),
+    queryFn: () => getSellerNetworkStats(networkStatsUrl as string, agentId as number),
+    enabled: !!networkStatsUrl && !!agentId && agentId > 0,
+    staleTime: 60_000,
   });
 }
 

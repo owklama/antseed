@@ -1,3 +1,7 @@
+/* Shared chart chrome: the `.usage-chart` wrapper + `.usage-chart-tooltip*`
+ * classes below are also used by seller-volume-chart and (tooltip only) by
+ * seller-emissions-chart. Keep selectors stable when editing. */
+
 .usage-chart {
   position: relative;
   width: 100%;

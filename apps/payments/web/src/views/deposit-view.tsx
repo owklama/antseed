@@ -7,7 +7,7 @@ import { ArrowRight01Icon } from '@hugeicons/core-free-icons';
 import { usePaymentNetwork } from '../lib/payment-network';
 import { useBalance, useBuyerEvmAddress, useConfig } from '../hooks/queries';
 import { useAppShell } from '../context/app-shell-context';
-import { UsdcLogo, BaseLogo } from '../components/ui/brand-logos';
+import { UsdcLogo, BaseLogo, CoinbaseCommerceLogo, RevolutLogo } from '../components/ui/brand-logos';
 import { formatUsd, formatAmountInput, truncateAddr } from '../lib/format';
 import { useDeposit } from '../hooks/use-deposit';
 import './deposit-view.scss';
@@ -42,9 +42,6 @@ export function DepositView() {
     <div className="deposit">
       <div className="card">
         <div className="card-section-title">Deposit USDC</div>
-        <div className="wallet-role-hint">
-          Any wallet can fund your AntSeed account. Your signer authorizes spending; the contract holds the balance.
-        </div>
 
         <div className="rh-tabs" role="tablist" aria-label="Deposit method">
           <button
@@ -68,7 +65,6 @@ export function DepositView() {
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/><line x1="1" y1="6.5" x2="15" y2="6.5" stroke="currentColor" strokeWidth="1.4"/></svg>
             </span>
             Credit card
-            <span className="rh-tab-tag">Soon</span>
           </button>
           <span className={`rh-tab-indicator ${method === 'card' ? 'is-right' : ''}`} aria-hidden="true" />
         </div>
@@ -76,10 +72,131 @@ export function DepositView() {
         {method === 'crypto' ? (
           <CryptoDeposit />
         ) : (
-          <CardDepositPlaceholder />
+          <CardDeposit />
         )}
       </div>
     </div>
+  );
+}
+
+/* ── Wallet architecture hint ─────────────────────────────────────
+ * AntSeed splits authority across two wallets: the Owner (external,
+ * user-controlled — funds, withdrawals, claims) and the Signer (on
+ * this node, automated — per-request spending). This compact tile
+ * stays collapsed by default; the user pops it open when they want
+ * the mental model. The expanded diagram is a single coherent
+ * ledger: Owner ⇄ AntSeed vault ⇄ Signer, with annotated flows.
+ *
+ * The content is contextualized by the active deposit method: a
+ * crypto deposit shows the user's connected wallet as the Owner;
+ * a card deposit shows the card processor in the funding role and
+ * notes that an Owner wallet is still required for later
+ * withdrawals & ANTS claims. */
+type CellState = 'yes' | 'no' | 'never';
+interface ArchMatrix {
+  cols: [{ name: string; sub: string }, { name: string; sub: string }];
+  rows: { label: string; left: CellState; right: CellState; leftNote?: string; rightNote?: string }[];
+  tail?: string;
+}
+
+const ARCH_MATRIX: Record<DepositMethod, ArchMatrix> = {
+  crypto: {
+    cols: [
+      { name: 'Owner', sub: 'You' },
+      { name: 'Signer', sub: 'This node' },
+    ],
+    rows: [
+      { label: 'Sign spends',  left: 'no',  right: 'yes', rightNote: 'per request' },
+      { label: 'Withdraw',     left: 'yes', right: 'no' },
+      { label: 'Claim ANTS',   left: 'yes', right: 'no' },
+      { label: 'Move funds out', left: 'yes', right: 'never' },
+    ],
+  },
+  card: {
+    cols: [
+      { name: 'Funding', sub: 'Coinbase · Revolut' },
+      { name: 'Signer', sub: 'This node' },
+    ],
+    rows: [
+      { label: 'Pay the balance', left: 'yes', right: 'no' },
+      { label: 'Sign spends',     left: 'no',  right: 'yes', rightNote: 'per request' },
+      { label: 'Move funds out',  left: 'no',  right: 'never' },
+    ],
+    tail: 'Set an Owner wallet later for withdrawals & ANTS claims.',
+  },
+};
+
+function WalletArchHint({ method }: { method: DepositMethod }) {
+  const [open, setOpen] = useState(false);
+  const isCard = method === 'card';
+  const matrix = ARCH_MATRIX[method];
+
+  return (
+    <div className={`rh-arch ${open ? 'is-open' : ''}`}>
+      <button
+        type="button"
+        className="rh-arch-trigger"
+        aria-expanded={open}
+        aria-controls="rh-arch-body"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="rh-arch-trigger-mark" aria-hidden="true">
+          <span className="rh-arch-trigger-dot" />
+          <span className="rh-arch-trigger-dot" />
+        </span>
+        <span className="rh-arch-trigger-text">
+          Two wallets · one balance
+          <span className="rh-arch-trigger-ctx">{isCard ? 'card' : 'crypto'}</span>
+        </span>
+        <span className="rh-arch-trigger-chev" aria-hidden="true">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+
+      <div id="rh-arch-body" className="rh-arch-body" hidden={!open}>
+        <table className="rh-arch-grid">
+          <thead>
+            <tr>
+              <th aria-hidden="true" />
+              <th scope="col">
+                <span className="rh-arch-grid-col-name">{matrix.cols[0].name}</span>
+                <span className="rh-arch-grid-col-sub">{matrix.cols[0].sub}</span>
+              </th>
+              <th scope="col">
+                <span className="rh-arch-grid-col-name">{matrix.cols[1].name}</span>
+                <span className="rh-arch-grid-col-sub">{matrix.cols[1].sub}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {matrix.rows.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{row.label}</th>
+                <td><ArchCell state={row.left} note={row.leftNote} /></td>
+                <td><ArchCell state={row.right} note={row.rightNote} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {matrix.tail ? <p className="rh-arch-tail">{matrix.tail}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function ArchCell({ state, note }: { state: CellState; note?: string }) {
+  const mark =
+    state === 'yes'   ? <span className="rh-arch-mark rh-arch-mark--yes" aria-label="yes" />
+  : state === 'never' ? <span className="rh-arch-mark rh-arch-mark--never" aria-label="never" />
+  :                     <span className="rh-arch-mark rh-arch-mark--no"  aria-label="no" />;
+  const label = state === 'never' ? 'never' : note;
+  return (
+    <span className={`rh-arch-cell rh-arch-cell--${state}`}>
+      {mark}
+      {label ? <em className="rh-arch-cell-note">{label}</em> : null}
+    </span>
   );
 }
 
@@ -225,6 +342,7 @@ function CryptoDeposit() {
 
   return (
     <div className="rh-form">
+      <WalletArchHint method="crypto" />
       {!isConnected ? (
         <>
           <div className="rh-hero" data-state="disconnected">
@@ -866,19 +984,86 @@ function DepositStepRail({
   );
 }
 
-/* ── Credit Card (coming soon) ── */
+/* ── Credit Card ──
+ *
+ * Card deposits go through a third-party hosted checkout (Coinbase Commerce
+ * or Revolut), then arrive on-chain as USDC into the AntSeed Deposits
+ * contract via the operator's settlement wallet. The frontend just
+ * click-throughs to the provider's hosted page — webhook reconciliation
+ * happens server-side.
+ *
+ * Checkout URLs come from Vite env so each environment can point at its
+ * own provider config (sandbox vs. production, different merchant accounts).
+ * If unset, we fall back to the provider's public landing page so the
+ * button still does something sensible during dev. */
 
-function CardDepositPlaceholder() {
+const viteEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+const COINBASE_COMMERCE_URL =
+  viteEnv.VITE_COINBASE_COMMERCE_URL || 'https://commerce.coinbase.com/';
+const REVOLUT_PAY_URL =
+  viteEnv.VITE_REVOLUT_PAY_URL || 'https://www.revolut.com/business/online-payments';
+
+type CardProvider = {
+  id: 'coinbase-commerce' | 'revolut';
+  name: string;
+  description: string;
+  url: string;
+  Logo: React.ComponentType<{ size?: number }>;
+};
+
+const CARD_PROVIDERS: CardProvider[] = [
+  {
+    id: 'coinbase-commerce',
+    name: 'Coinbase Commerce',
+    description: 'Pay with debit/credit card or USDC via Coinbase.',
+    url: COINBASE_COMMERCE_URL,
+    Logo: CoinbaseCommerceLogo,
+  },
+  {
+    id: 'revolut',
+    name: 'Revolut',
+    description: 'Pay with card, Apple Pay, Google Pay, or Revolut Pay.',
+    url: REVOLUT_PAY_URL,
+    Logo: RevolutLogo,
+  },
+];
+
+function CardDeposit() {
   return (
     <div className="rh-form">
-      <div className="rh-coming">
-        <div className="rh-coming-icon" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/><line x1="1" y1="6.5" x2="15" y2="6.5" stroke="currentColor" strokeWidth="1.4"/><line x1="4" y1="9.5" x2="8" y2="9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
-        </div>
-        <div className="rh-coming-title">Credit card deposits, soon</div>
-        <div className="rh-coming-desc">
-          We're integrating direct card deposits. For now, fund your account with a crypto wallet.
-        </div>
+      <WalletArchHint method="card" />
+      <div className="rh-card-intro">
+        Card deposits are processed by a third-party. Funds arrive in your AntSeed account
+        as USDC once the payment confirms — usually within a few minutes.
+      </div>
+
+      <div className="rh-providers" role="list">
+        {CARD_PROVIDERS.map(({ id, name, description, url, Logo }) => (
+          <a
+            key={id}
+            className="rh-provider"
+            role="listitem"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="rh-provider-logo" aria-hidden="true">
+              <Logo size={32} />
+            </span>
+            <span className="rh-provider-body">
+              <span className="rh-provider-name">{name}</span>
+              <span className="rh-provider-desc">{description}</span>
+            </span>
+            <span className="rh-provider-cta">
+              <span className="rh-provider-cta-label">Use</span>
+              <HugeiconsIcon icon={ArrowRight01Icon} size={12} strokeWidth={2} />
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <div className="rh-card-foot">
+        Provider fees and limits apply. We never see your card number.
       </div>
     </div>
   );

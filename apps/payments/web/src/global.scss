@@ -856,14 +856,16 @@ $dash-sidebar-width: 240px;
     padding: 14px 12px 16px;
   }
 
-  /* ── Alpha pill + popover ─────────────────────────────────────── */
-  &-alpha-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
-
-  &-alpha {
+  /* ── "How it works" trigger ─────────────────────────────────────
+   * Same anatomy as the former Alpha pill: small accent-tinted pill,
+   * uppercase letterspaced, sitting inline beside the wordmark. The
+   * label `GUIDE` (5 chars, same width budget as `ALPHA`) telegraphs
+   * "this opens an explainer" without needing a glyph or arrow. */
+  &-howto {
     display: inline-flex;
     align-items: center;
     height: 18px;
-    padding: 0 7px;
+    padding: 0 8px;
     border-radius: 999px;
     background: var(--accent-dim);
     border: 1px solid var(--accent-border);
@@ -877,85 +879,17 @@ $dash-sidebar-width: 240px;
     user-select: none;
     font-family: inherit;
     line-height: 1;
-    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
 
     &:hover {
       background: color-mix(in srgb, var(--accent) 18%, transparent);
       border-color: color-mix(in srgb, var(--accent) 55%, transparent);
     }
-    &--open {
-      background: color-mix(in srgb, var(--accent) 22%, transparent);
-      border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    &:focus-visible {
+      outline: none;
+      border-color: var(--accent);
     }
-  }
-
-  &-alpha-popover {
-    width: 272px;
-    background: var(--box-bg);
-    border: 1px solid var(--box-border);
-    border-radius: 12px;
-    padding: 14px 14px 12px;
-    box-shadow: var(--box-shadow);
-    z-index: var(--z-popover);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transform-origin: top left;
-    animation: dash-alpha-pop-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  &-alpha-popover-head {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  &-alpha-popover-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-  }
-  &-alpha-popover-eyebrow {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent-text);
-    line-height: 1;
-  }
-  &-alpha-popover-lede {
-    margin: 2px 0 4px;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--text-primary);
-    letter-spacing: -0.005em;
-  }
-  &-alpha-popover-list {
-    list-style: none;
-    margin: 0;
-    padding: 10px 0 0;
-    border-top: 1px solid var(--divider);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-size: 11.5px;
-      line-height: 1.45;
-      color: var(--text-secondary);
-    }
-  }
-  &-alpha-popover-mark {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--accent) 60%, transparent);
-    flex-shrink: 0;
-    margin-top: 7px;
   }
 
   /* ── Nav ──────────────────────────────────────────────────────── */
@@ -1078,11 +1012,6 @@ $dash-sidebar-width: 240px;
 }
 .antseed-logo-seed {
   color: var(--accent);
-}
-
-@keyframes dash-alpha-pop-in {
-  0%   { opacity: 0; transform: translateY(-4px) scale(0.97); }
-  100% { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 /* ── Account menu (sidebar footer) ──────────────────────────────── */
@@ -2771,8 +2700,12 @@ $dash-sidebar-width: 240px;
    * because .rh-cta has overflow:hidden — its own ::before would be
    * clipped. The gradient fades scrolling content into transparency above
    * the button and lays a solid plate below it to cover the modal's
-   * bottom padding gap where advanced toggles otherwise bleed through. */
-  &::after {
+   * bottom padding gap where advanced toggles otherwise bleed through.
+   *
+   * Scoped to bodies that actually contain a sticky CTA — without one
+   * (e.g. the card-deposit provider list), the gradient has nothing to
+   * sit behind and instead fades out real content. */
+  &:has(.rh-cta)::after {
     content: '';
     position: sticky;
     display: block;
@@ -2790,7 +2723,7 @@ $dash-sidebar-width: 240px;
     );
   }
 
-  .action-modal-card--wide &::after {
+  .action-modal-card--wide &:has(.rh-cta)::after {
     margin-left: -28px;
     margin-right: -28px;
   }
@@ -3283,4 +3216,511 @@ $dash-sidebar-width: 240px;
 
 @keyframes empty-state-success-draw {
   to { stroke-dashoffset: 0; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * How AntSeed works — explainer modal (`HowItWorksModal`)
+ * Three numbered panels with bespoke SVG glyphs. Sits inside
+ * `.action-modal-card--wide`, so we don't restyle the chrome —
+ * only the contents.
+ * ────────────────────────────────────────────────────────────────── */
+
+.hiw {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-top: 4px;
+}
+
+.hiw-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hiw-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 18px;
+  padding: 18px 4px 18px 0;
+  border-bottom: 1px solid var(--divider);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hiw-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--hiw-delay, 0ms);
+
+  &:last-child { border-bottom: none; }
+}
+
+.hiw-step-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.hiw-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hiw-step-line {
+  flex: 1;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--accent-border) 0%,
+    transparent 100%
+  );
+  .hiw-step:last-child & { display: none; }
+}
+
+.hiw-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hiw-step-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.hiw-step-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.hiw-step-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 44ch;
+}
+
+.hiw-step-tags {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hiw-step-tag {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hiw-step-glyph {
+  align-self: flex-start;
+  display: inline-flex;
+  width: 72px;
+  height: 72px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.hiw-note {
+  margin: 0 auto;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 50ch;
+}
+
+@keyframes hiw-step-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 520px) {
+  .hiw-step {
+    grid-template-columns: 32px 1fr;
+    grid-template-rows: auto auto;
+    gap: 14px;
+  }
+  .hiw-step-glyph {
+    grid-column: 2;
+    grid-row: 2;
+    width: 60px;
+    height: 60px;
+  }
+  .hiw-step-num { width: 28px; height: 28px; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Getting Started — sidebar checklist (`GettingStarted`)
+ * Lives between `.dash-sidebar-nav` and `.dash-sidebar-footer`.
+ * Tight, low-chrome anatomy: small outlined markers (not chunky filled
+ * circles), eyebrow + count + progress dots in one header row, no
+ * per-step hint text. Drops to a single celebration micro-row once
+ * every step is done, instead of keeping a list of struck-through
+ * items on screen.
+ * ────────────────────────────────────────────────────────────────── */
+
+.gs {
+  display: flex;
+  flex-direction: column;
+  margin: 6px 4px;
+  padding: 9px 10px;
+  background: var(--box-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.gs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.gs-header-eyebrow {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.gs-header-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  flex: 1;
+}
+.gs-header-count-num { color: var(--text-primary); }
+.gs-header-count-of {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
+.gs-header-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.gs-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--card-border);
+  transition: background 0.18s ease;
+
+  &--done { background: var(--accent); }
+}
+
+.gs-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+
+  &--up { transform: rotate(180deg); }
+}
+
+.gs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider);
+  animation: gs-body-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gs-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.gs-step {
+  display: grid;
+  grid-template-columns: 13px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  min-height: 22px;
+}
+
+.gs-step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+
+  .gs-step--done & { color: var(--accent); }
+}
+
+.gs-step-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  line-height: 1.25;
+  min-width: 0;
+
+  .gs-step--done & { color: var(--text-muted); }
+}
+
+.gs-step-action {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--accent-border);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, border-color 0.14s ease;
+
+  &:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+}
+
+.gs-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  margin-top: 2px;
+  border-top: 1px solid var(--divider);
+}
+
+.gs-link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  letter-spacing: -0.003em;
+  transition: color 0.14s ease;
+
+  &:hover { color: var(--accent-text); }
+}
+
+.gs-dismiss {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 0.14s ease;
+
+  &:hover { color: var(--text-secondary); }
+}
+
+/* ── All-done micro-row (replaces the body entirely) ───────────────
+ * Single line: eyebrow · count · 4 filled dots · × dismiss.
+ * Acknowledges completion without leaving a struck-through checklist
+ * sitting in the sidebar forever.
+ * ───────────────────────────────────────────────────────────────── */
+.gs-finished {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gs-finished-eyebrow {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  line-height: 1;
+}
+
+.gs-finished-count {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  flex: 1;
+}
+.gs-finished-count-num { color: var(--text-primary); }
+.gs-finished-count-of { color: var(--text-faint); font-weight: 500; }
+
+.gs-finished-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.gs-finished-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease;
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--card-hover, rgba(148, 163, 184, 0.08));
+  }
+}
+
+@keyframes gs-body-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * "How does this work?" inline link inside the deposit empty-state
+ * ────────────────────────────────────────────────────────────────── */
+
+.empty-state-learn {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition: color 0.14s ease;
+
+  span {
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    text-underline-offset: 3px;
+  }
+
+  svg { transition: transform 0.18s ease; }
+  &:hover {
+    color: var(--accent);
+    svg { transform: translateX(2px); }
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Overview hero — dual CTA group (primary + secondary text link)
+ * ────────────────────────────────────────────────────────────────── */
+
+.overview-hero-cta-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
+
+  /* Cancel the auto-margin on the inner cta — the group owns positioning now */
+  .overview-hero-cta { margin-left: 0; }
+}
+
+.overview-hero-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 4px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  text-underline-offset: 3px;
+  transition: color 0.14s ease;
+
+  &:hover { color: var(--text-primary); }
+}
+
+@media (max-width: 640px) {
+  .overview-hero-cta-group {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

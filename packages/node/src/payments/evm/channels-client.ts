@@ -37,6 +37,7 @@ const CHANNELS_ABI = [
   'function channels(bytes32 channelId) external view returns (address buyer, address seller, uint128 deposit, uint128 settled, bytes32 metadataHash, uint256 deadline, uint256 settledAt, uint256 closeRequestedAt, uint8 status)',
   'function computeChannelId(address buyer, address seller, bytes32 salt) external pure returns (bytes32)',
   'function getAgentStats(uint256 agentId) external view returns (uint64 channelCount, uint64 ghostCount, uint256 totalVolumeUsdc, uint64 lastSettledAt)',
+  'function activeChannelCount(address seller) external view returns (uint256)',
   'function domainSeparator() external view returns (bytes32)',
   'function FIRST_SIGN_CAP() external view returns (uint256)',
   'event CloseRequested(bytes32 indexed channelId, address indexed buyer, address indexed seller, uint256 gracePeriodEnd)',
@@ -253,6 +254,12 @@ export class ChannelsClient extends BaseEvmClient {
       totalVolumeUsdc: result[2] as bigint,
       lastSettledAt: Number(result[3]),
     };
+  }
+
+  async getActiveChannelCount(sellerAddr: string): Promise<number> {
+    const contract = new Contract(await this._getReadAddress(), CHANNELS_ABI, this._provider);
+    const result = await contract.getFunction('activeChannelCount')(sellerAddr);
+    return Number(result);
   }
 
   /**

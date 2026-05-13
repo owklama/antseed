@@ -1,0 +1,51 @@
+/* Seller emissions bar chart — reuses .usage-chart-tooltip styles from
+ * usage-chart.scss for tooltip parity with the buyer chart. */
+
+.seller-emissions-chart {
+  width: 100%;
+  padding: 8px 4px 0;
+
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    padding: 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+  }
+}
+
+.seller-emissions-chart-empty-text {
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+.seller-emissions-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: var(--text-muted);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.seller-emissions-chart-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+
+  &--claimed   { background: var(--accent); }
+  &--claimable { background: var(--accent-text); }
+  &--current   { background: color-mix(in srgb, var(--accent) 55%, transparent); }
+}

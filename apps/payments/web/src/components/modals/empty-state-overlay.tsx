@@ -4,6 +4,7 @@ import { ArrowRight01Icon } from '@hugeicons/core-free-icons';
 import { useBodyScrollLock } from '../../hooks/use-body-scroll-lock';
 import { useBuyerEvmAddress } from '../../hooks/queries';
 import { DepositView } from '../../views/deposit-view';
+import { useAppShell } from '../../context/app-shell-context';
 import type { OverlayPhase } from '../../context/app-shell-context';
 
 interface EmptyStateOverlayProps {
@@ -59,6 +60,7 @@ export function EmptyStateOverlay({
   onDismissDeposit,
 }: EmptyStateOverlayProps) {
   const buyerAddress = useBuyerEvmAddress();
+  const { openHowItWorks } = useAppShell();
   const [copied, setCopied] = useState(false);
 
   const isVisible = phase !== null;
@@ -112,6 +114,17 @@ export function EmptyStateOverlay({
                 Deposit USDC to start routing requests across the network. Your AntSeed
                 signer authorizes spending from the account — it never holds funds itself.
               </p>
+              <button
+                type="button"
+                className="empty-state-learn"
+                onClick={() => {
+                  if (onDismissDeposit) onDismissDeposit();
+                  openHowItWorks();
+                }}
+              >
+                <span>How does this work?</span>
+                <HugeiconsIcon icon={ArrowRight01Icon} size={12} strokeWidth={1.8} />
+              </button>
             </div>
 
             <div className="empty-state-body">

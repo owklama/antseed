@@ -1,17 +1,20 @@
 import { type BuyerUsageChannelPoint } from '../lib/api';
-import { useBuyerUsage, useConfig, useNetworkStats } from '../hooks/queries';
+import { useBuyerUsage, useConfig, useNetworkStats, useSellerStatus } from '../hooks/queries';
+import { useAppShell } from '../context/app-shell-context';
 import { UsageChart } from '../components/ui/usage-chart';
-import { formatCompact, formatNumber, bigintFromString } from '../lib/format';
+import { formatCompact, formatNumber, formatUsd, bigintFromString } from '../lib/format';
 import { OverviewHero } from './overview-hero';
 import './overview-view.scss';
 
 const EMPTY_CHANNELS: BuyerUsageChannelPoint[] = [];
 
 export function OverviewView() {
+  const { isSeller, selectTab } = useAppShell();
   const { data: config = null } = useConfig();
   const networkStatsUrl = config?.networkStatsUrl ?? null;
 
   const { data: buyerUsage = null, error: buyerUsageErr } = useBuyerUsage();
+  const { data: sellerStatus = null } = useSellerStatus();
   const { data: networkStats = null, error: networkStatsErr } = useNetworkStats(networkStatsUrl);
   const buyerUsageError = buyerUsageErr ? (buyerUsageErr instanceof Error ? buyerUsageErr.message : String(buyerUsageErr)) : null;
   const networkStatsError = networkStatsErr ? (networkStatsErr instanceof Error ? networkStatsErr.message : String(networkStatsErr)) : null;
@@ -90,9 +93,45 @@ export function OverviewView() {
         )}
       </section>
 
+      {isSeller && (
+        <section className="overview-section">
+          <header className="overview-section-head">
+            <div className="overview-section-eyebrow">Sellers</div>
+            <h2 className="overview-section-title">Your seller registration</h2>
+            <p className="overview-section-sub">
+              You&rsquo;re staked and routable as a seller. <button
+                type="button"
+                className="overview-inline-link"
+                onClick={() => selectTab('sellers')}
+              >
+                Open the Sellers view
+              </button> for the full picture.
+            </p>
+          </header>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <div className="stat-card-label">Stake</div>
+              <div className="stat-card-value">
+                {sellerStatus ? formatUsd(parseFloat(sellerStatus.stake)) : '—'}
+              </div>
+              <div className="stat-card-hint">USDC bonded</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card-label">Agent ID</div>
+              <div className="stat-card-value">
+                {sellerStatus && sellerStatus.agentId > 0
+                  ? `#${formatNumber(sellerStatus.agentId)}`
+                  : '—'}
+              </div>
+              <div className="stat-card-hint">Bound on the staking contract</div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="overview-section">
         <header className="overview-section-head">
-          <div className="overview-section-eyebrow">Your activity</div>
+          <div className="overview-section-eyebrow">{isSeller ? 'As a buyer' : 'Your activity'}</div>
           <h2 className="overview-section-title">Your usage</h2>
           <p className="overview-section-sub">
             Requests and tokens flowing through your signer over time.

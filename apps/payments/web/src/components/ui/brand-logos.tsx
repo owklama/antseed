@@ -51,3 +51,43 @@ export function BaseLogo({ size = 14, className }: LogoProps) {
     </svg>
   );
 }
+
+export function CoinbaseCommerceLogo({ size = 28, className }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="32" height="32" rx="7" fill="#0052FF" />
+      <path
+        d="M16 9.2c3.756 0 6.8 3.044 6.8 6.8s-3.044 6.8-6.8 6.8S9.2 19.756 9.2 16 12.244 9.2 16 9.2zm-2.4 5.6a.6.6 0 0 0-.6.6v1.6a.6.6 0 0 0 .6.6h4.8a.6.6 0 0 0 .6-.6v-1.6a.6.6 0 0 0-.6-.6h-4.8z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
+export function RevolutLogo({ size = 28, className }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="32" height="32" rx="7" fill="#0A0A0A" />
+      <path
+        d="M11 9h6.4c2.43 0 4.4 1.93 4.4 4.31 0 1.94-1.31 3.58-3.11 4.1L22 23h-3.39l-3.1-5.4H13.6V23H11V9zm2.6 2.5v3.7h3.6c1.06 0 1.93-.83 1.93-1.85S18.26 11.5 17.2 11.5h-3.6z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}

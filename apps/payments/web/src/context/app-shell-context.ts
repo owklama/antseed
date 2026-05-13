@@ -10,8 +10,16 @@ export interface AppShellContextValue {
   toggleTheme: () => void;
   openDeposit: () => void;
   openWithdraw: () => void;
+  openHowItWorks: () => void;
   refreshBalance: () => Promise<void>;
   handleDeposited: () => Promise<void>;
+  /**
+   * On-chain seller status for the current signer. `isSeller` is derived from
+   * a non-zero stake on the AntseedStaking contract. Defaults to false while
+   * the seller-status query is in flight — UI must treat the seller as a
+   * minority case, never blocking buyer flows on it.
+   */
+  isSeller: boolean;
 }
 
 export const AppShellContext = createContext<AppShellContextValue | null>(null);

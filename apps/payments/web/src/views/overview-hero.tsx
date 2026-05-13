@@ -19,7 +19,7 @@ type IconData = Parameters<typeof HugeiconsIcon>[0]['icon'];
 
 export function OverviewHero() {
   const { data: balance = null } = useBalance();
-  const { openDeposit: onOpenDeposit } = useAppShell();
+  const { openDeposit: onOpenDeposit, openHowItWorks } = useAppShell();
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const { operatorSet, requireAuthorization } = useAuthorizedWallet();
@@ -52,6 +52,7 @@ export function OverviewHero() {
         ctaIcon={WalletAdd01Icon}
         ctaLabel="Deposit"
         onCta={onOpenDeposit}
+        secondary={{ label: 'How it works', onClick: openHowItWorks }}
       />
     );
   }
@@ -99,9 +100,10 @@ interface HeroCardProps {
   ctaIcon?: IconData;
   ctaLabel: string;
   onCta: () => void;
+  secondary?: { label: string; onClick: () => void };
 }
 
-function HeroCard({ tone, icon, heading, sub, ctaIcon, ctaLabel, onCta }: HeroCardProps) {
+function HeroCard({ tone, icon, heading, sub, ctaIcon, ctaLabel, onCta, secondary }: HeroCardProps) {
   return (
     <section className={`overview-hero overview-hero--${tone}`}>
       <span className="overview-hero-icon">
@@ -111,10 +113,17 @@ function HeroCard({ tone, icon, heading, sub, ctaIcon, ctaLabel, onCta }: HeroCa
         <h2 className="overview-hero-heading">{heading}</h2>
         <p className="overview-hero-sub">{sub}</p>
       </div>
-      <button type="button" className="overview-hero-cta" onClick={onCta}>
-        {ctaIcon && <HugeiconsIcon icon={ctaIcon} size={13} strokeWidth={1.8} />}
-        {ctaLabel}
-      </button>
+      <div className="overview-hero-cta-group">
+        {secondary && (
+          <button type="button" className="overview-hero-cta-secondary" onClick={secondary.onClick}>
+            {secondary.label}
+          </button>
+        )}
+        <button type="button" className="overview-hero-cta" onClick={onCta}>
+          {ctaIcon && <HugeiconsIcon icon={ctaIcon} size={13} strokeWidth={1.8} />}
+          {ctaLabel}
+        </button>
+      </div>
     </section>
   );
 }

@@ -83,7 +83,7 @@ function estimateCurrentReward(
 }
 
 export function EarnView() {
-  const { selectTab: onSelectTab } = useAppShell();
+  const { selectTab: onSelectTab, isSeller } = useAppShell();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
 
@@ -147,8 +147,9 @@ export function EarnView() {
           <div className="page-banner-eyebrow">Earn</div>
           <h2 className="page-banner-heading">Stack $ANTS as the network grows</h2>
           <p className="page-banner-sub">
-            Active sellers, buyers, and $DIEM stakers all earn $ANTS each epoch — no pre-mine,
-            just on-chain participation.
+            {isSeller
+              ? 'Your seller settlements earn $ANTS each epoch — plus buyer-side credit on requests you route. No pre-mine, just on-chain participation.'
+              : 'Active sellers, buyers, and $DIEM stakers all earn $ANTS each epoch — no pre-mine, just on-chain participation.'}
           </p>
         </div>
         <div className="page-banner-actions">
@@ -186,7 +187,9 @@ export function EarnView() {
           </h2>
           <p className="overview-section-sub">
             {shares
-              ? `Split: ${shares.sellerSharePct}% sellers · ${shares.buyerSharePct}% buyers · ${shares.reserveSharePct}% reserve · ${shares.teamSharePct}% team.`
+              ? isSeller
+                ? `Split: ${shares.sellerSharePct}% sellers (you) · ${shares.buyerSharePct}% buyers · ${shares.reserveSharePct}% reserve · ${shares.teamSharePct}% team.`
+                : `Split: ${shares.buyerSharePct}% buyers (you) · ${shares.sellerSharePct}% sellers · ${shares.reserveSharePct}% reserve · ${shares.teamSharePct}% team.`
               : 'Live emission window across the AntSeed network.'}
           </p>
         </header>

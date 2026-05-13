@@ -71,6 +71,119 @@ export interface OperatorData {
   nonce: number;
 }
 
+/**
+ * Seller status for the signer's evmAddress, read from the on-chain
+ * staking contract. `isSeller` is the protocol-level definition: any
+ * non-zero stake bound to an agentId.
+ */
+export interface SellerStatus {
+  evmAddress: string;
+  isSeller: boolean;
+  stake: string;       // formatted USDC (6dp)
+  agentId: number;
+  stakedAt: number;    // unix seconds, 0 if not staked
+  configured: boolean; // false when staking contract address is not set for the chain
+}
+
+export async function getSellerStatus(): Promise<SellerStatus> {
+  return fetchJson('/api/seller-status');
+}
+
+/**
+ * Lifetime, on-chain seller activity for the configured signer. Sourced
+ * from `Channels.getAgentStats(agentId)` and `Channels.activeChannelCount`.
+ * Returns zeros (with `configured: true`) for a registered-but-inactive
+ * seller — channels stats are keyed on agentId, which is 0 until the user
+ * has registered + staked.
+ */
+export interface SellerActivity {
+  evmAddress: string;
+  agentId: number;
+  channelCount: number;      // lifetime channels created
+  totalVolumeUsdc: string;   // formatted USDC, lifetime settled volume
+  lastSettledAt: number;     // unix seconds, 0 if never
+  activeChannels: number;    // open right now
+  configured: boolean;
+}
+
+export async function getSellerActivity(): Promise<SellerActivity> {
+  return fetchJson('/api/seller-activity');
+}
+
+/**
+ * Per-day USDC volume served by the configured seller, reconstructed from
+ * Channels.ChannelSettled events. Server caches for 60s. Empty days are
+ * filled with zero buckets so the chart x-axis reads continuously.
+ */
+export interface VolumeBucket {
+  date: string;         // ISO YYYY-MM-DD (UTC)
+  volumeUsdc: string;   // formatted USDC
+  settlements: number;
+}
+
+export interface SellerVolumeSeries {
+  days: number;
+  buckets: VolumeBucket[];
+  totalVolumeUsdc: string;
+  totalSettlements: number;
+  configured: boolean;
+}
+
+export async function getSellerVolumeSeries(days = 30): Promise<SellerVolumeSeries> {
+  return fetchJson(`/api/seller-volume-series?days=${days}`);
+}
+
+/**
+ * Per-seller stats from the network-stats aggregator's `/stats` endpoint.
+ * Returned as part of each peer entry's `onChainStats`. We pull them by
+ * matching `agentId` (more reliable than peerId, which has casing/encoding
+ * quirks across providers).
+ */
+export interface SellerNetworkStats {
+  totalRequests: string;
+  totalInputTokens: string;
+  totalOutputTokens: string;
+  settlementCount: number;
+  uniqueBuyers: number;
+  uniqueChannels: number;
+  firstSeenAt: number | null;
+  lastSeenAt: number | null;
+  avgRequestsPerChannel: number;
+  avgRequestsPerBuyer: number;
+}
+
+/**
+ * Fetch /stats from network-stats and find the peer entry matching the
+ * given agentId. Returns null when the indexer hasn't observed any
+ * settlements for this seller yet.
+ */
+export async function getSellerNetworkStats(
+  networkStatsUrl: string,
+  agentId: number,
+): Promise<SellerNetworkStats | null> {
+  if (!agentId || agentId === 0) return null;
+  const url = `${networkStatsUrl.replace(/\/$/, '')}/stats`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`network-stats returned ${res.status}`);
+  }
+  const body = (await res.json()) as {
+    peers?: Array<{
+      onChainStats?: (SellerNetworkStats & { agentId?: number }) | null;
+    }>;
+  };
+  const peers = Array.isArray(body.peers) ? body.peers : [];
+  for (const peer of peers) {
+    const s = peer.onChainStats;
+    if (s && s.agentId === agentId) {
+      // Strip the agentId before returning — caller already has it.
+      const { agentId: _ignored, ...rest } = s;
+      return rest;
+    }
+  }
+  return null;
+}
+
 export async function getChannels(): Promise<{ channels: RawChannel[] }> {
   return fetchJson('/api/channels');
 }

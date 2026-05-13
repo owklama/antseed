@@ -34,6 +34,35 @@ export function formatAnts(amountWei: string | bigint): string {
   }
 }
 
+/**
+ * Compact display of an ANTS (18-decimal) wei amount — uses `formatCompact` for
+ * whole-token amounts and falls back to 4-decimal display for sub-unit amounts.
+ * Used in stat cards where space is tight.
+ */
+export function formatAntsCompact(amountWei: bigint): string {
+  if (amountWei === 0n) return '0';
+  const divisor = 10n ** BigInt(ANTS_DECIMALS);
+  const whole = amountWei / divisor;
+  if (whole >= 1n) return formatCompact(whole);
+  const n = Number(amountWei) / Number(divisor);
+  if (n < 0.0001) return '< 0.0001';
+  return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
+/**
+ * Convert an ANTS (18-decimal) wei amount to a JS number, preserving the
+ * fractional part. For chart axes / numeric layouts — do NOT use for display
+ * (use `formatAnts` / `formatAntsCompact` instead, which handle 0 / sub-unit
+ * edge cases).
+ */
+export function antsWeiToNumber(amountWei: bigint): number {
+  if (amountWei === 0n) return 0;
+  const divisor = 10n ** BigInt(ANTS_DECIMALS);
+  const whole = Number(amountWei / divisor);
+  const remainder = Number(amountWei % divisor) / Number(divisor);
+  return whole + remainder;
+}
+
 export function formatUsd(n: number): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
